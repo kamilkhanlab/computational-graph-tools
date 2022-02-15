@@ -1,7 +1,10 @@
 #=
 module CompGraphs
 =================
-The CompGraph type in this module is intended to hold the computational graph of a single composite function with vector-valued inputs and outputs. This graph expresses the composite function as a recipe of elemental operations. Computational graphs are required for implementing certain numerical methods, such as: 
+The CompGraph type in this module is intended to hold the computational graph of a 
+single composite function with vector-valued inputs and outputs. This graph 
+expresses the composite function as a recipe of elemental operations. Computational 
+graphs are required for implementing certain numerical methods, such as: 
 
 - the standard reverse/adjoint mode of automatic differentiation (AD)
 
@@ -13,7 +16,10 @@ The CompGraph type in this module is intended to hold the computational graph of
   by Wechsung et al. (2015)
   (https://doi.org/10.1007/s10898-015-0303-6)
 
-"load_function!" in this module uses operator overloading to construct the computational graph of a finite composition of supported operations. Each node and the graph overall can also hold additional user-specified data, intended for use in methods like the reverse AD mode.
+"load_function!" in this module uses operator overloading to construct the 
+computational graph of a finite composition of supported operations. Each 
+node and the graph overall can also hold additional user-specified data, 
+intended for use in methods like the reverse AD mode.
 
 Written by Kamil Khan on February 10, 2022
 =#
