@@ -32,7 +32,7 @@ end
 NodeData() = NodeData(0.0, 0.0)
 
 # called when printing NodeData
-Base.show(io::IO, n::NodeData) = print(io, "(", n.val, ", ", n.bar, ")")
+Base.show(io::IO, n::NodeData) = print(io, n.val, ", ", n.bar)
 
 # struct for holding information not specific to an individual node
 mutable struct TapeData
