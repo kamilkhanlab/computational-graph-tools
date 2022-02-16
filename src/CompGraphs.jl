@@ -88,7 +88,7 @@ opStringDict = Dict(
 
 function Base.show(io::IO, node::GraphNode)
     parents = node.parentIndices
-    
+
     if (node.operation == :^) && (length(parents) == 1)
         opString = " ^" * string(node.constValue)
     else
@@ -139,6 +139,9 @@ function load_function!(
 
     # push new nodes for all intermediate operations, using operator overloading
     yGB = f(xGB)
+    if !(yGB isa Vector)
+        yGB = [yGB]
+    end
 
     # push new nodes for function outputs
     for yComp in yGB

@@ -22,7 +22,7 @@ using .CompGraphs
 
 export generate_tape, reverse_AD!
 
-# struct for holding node-specific information
+# struct for holding node-specific information in computational graph
 mutable struct NodeData
     val::Float64           # value, computed during forward sweep
     bar::Float64           # adjoint, computed during reverse sweep
@@ -53,7 +53,7 @@ TapeData() = TapeData(
     false                  # areBarsZero
 )
 
-# create a CompTape "tape" for reverse AD, and load in a function
+# create a CompGraph "tape" of a provided funcntion for reverse AD
 function generate_tape(
     f::Function,
     domainDim::Int,
@@ -138,7 +138,7 @@ function fwd_evaluation_step!(
         v.val = (u(1).val)^(node.constValue)
         
     elseif nParents == 1
-        # handle all unary operations
+        # handle all other unary operations
         v.val = eval(op)(u(1).val)
         
     elseif nParents == 2
