@@ -31,6 +31,9 @@ end
 # default value of NodeData
 NodeData() = NodeData(0.0, 0.0)
 
+# called when printing NodeData
+Base.show(io::IO, n::NodeData) = print(io, "(", n.val, ", ", n.bar, ")")
+
 # struct for holding information not specific to an individual node
 mutable struct TapeData
     x::Vector{Float64}     # input value to graphed function

@@ -19,8 +19,9 @@ y1, xBar1 = reverse_AD!(tape1, x1, yBar1)
 println("For Example 1:")
 println("  Function tape:")
 println(tape1)
-@show y1
-@show xBar1
+println("  At x = ", x1, ":")
+println("    f(x) = ", y1)
+println("    gradient of f at x = ", xBar1)
 
 ## Example 2: the extended Rosenbrock function
 ##   from Section 1.4.3 of Naumann (2012), DOI:10.1137/1.9781611972078
@@ -44,10 +45,12 @@ x2 = 2.0*ones(n)
 yBar2 = [1.0]
 y2, xBar2 = reverse_AD!(tape2, x2, yBar2)
 
-println("For Example 2:")
+println("\nFor Example 2:")
 println("  Function tape:")
 println(tape2)
-@show y2
-@show xBar2
+println("  At x = ", x2, ":")
+println("    f(x) = ", y2)
+println("    gradient of f at x = ", xBar2)
+
 
 

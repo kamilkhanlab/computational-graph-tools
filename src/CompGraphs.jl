@@ -58,7 +58,6 @@ function CompGraph{T, P}(n::Int, m::Int) where {T, P}
     return CompGraph{T, P}(GraphNode{P}[], n, m, T())
 end
 
-
 # A GraphNode.operation can be any Symbol from the following lists
 unaryOpList = [:-, :inv, :exp, :log, :sin, :cos, :abs]
 binaryOpList = [:+, :-, :*, :/, :^, :max, :min, :hypot]
