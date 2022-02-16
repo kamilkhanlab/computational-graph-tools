@@ -87,14 +87,27 @@ opStringDict = Dict(
 )
 
 function Base.show(io::IO, node::GraphNode)
-    return print(
-        io,
-        opStringDict[node.operation],
-        (node.operation == :power) ? node.constValue : "",
-        " | ",
-        isempty(node.parentIndices) ? "[none]" : node.parentIndices, " | ",
-        (node.operation == :const) ? node.constValue : node.data
-    )
+    parents = node.parentIndices
+    
+    if (node.operation == :^) && (length(parents) == 1)
+        opString = " ^" * string(node.constValue)
+    else
+        opString = opStringDict[node.operation]
+    end
+
+    if isempty(parents)
+        parentString = "[none]"
+    else
+        parentString = string(parents)
+    end
+
+    if node.operation == :const
+        dataString = string(node.constValue)
+    else
+        dataString = string(node.data)
+    end
+    
+    return print(io, opString, " | ", parentString, " | ", dataString)
 end
 
 function Base.show(io::IO, graph::CompGraph)
