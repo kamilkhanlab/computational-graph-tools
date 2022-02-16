@@ -87,6 +87,7 @@ opStringDict = Dict(
 
 function Base.show(io::IO, node::GraphNode)
     parents = node.parentIndices
+    nParents = length(parents)
 
     if (node.operation == :^) && (length(parents) == 1)
         opString = " ^" * string(node.constValue)
@@ -94,8 +95,9 @@ function Base.show(io::IO, node::GraphNode)
         opString = opStringDict[node.operation]
     end
 
-    if isempty(parents)
-        parentString = "[none]"
+    if nParents <= 2
+        oneParent(i::Int) = (nParents < i) ? "   " : string(parents[i]; pad=3)
+        parentString = oneParent(1) * " " * oneParent(2)
     else
         parentString = string(parents)
     end
@@ -109,12 +111,13 @@ function Base.show(io::IO, node::GraphNode)
     return print(io, opString, " | ", parentString, " | ", dataString)
 end
 
+
 function Base.show(io::IO, graph::CompGraph)
     return begin
         println(" index | op  | parents | data")
         println(" ------------------------------")
         for (i, node) in enumerate(graph.nodeList)
-            print("   ", i, "   | ")
+            print("   ", string(i; pad=3), " | ")
             println(node)
         end
     end
