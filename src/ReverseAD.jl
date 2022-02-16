@@ -121,17 +121,21 @@ function fwd_evaluation_step!(
     t = tape.data
 
     # compute node value based on operation type
-    if op == :inp
+    if op == :input
         v.val = t.x[t.iX]
         t.iX += 1
         
-    elseif op == :out
+    elseif op == :output
         v.val = u(1).val
         t.y[t.iY] = v.val
         t.iY += 1
         
-    elseif op == :con
+    elseif op == :const
         v.val = node.constValue
+
+    elseif (op == :^) && (nParents == 1)
+        # in this case the power is stored as node.constValue
+        v.val = (u(1).val)^(node.constValue)
         
     elseif nParents == 1
         # handle all unary operations
@@ -193,16 +197,16 @@ function rev_adjoint_step!(
     t = tape.data
 
     # compute parent nodes' ".bars" based on operation type
-    if op == :inp
+    if op == :input
         t.xBar[t.iX] = v.bar
         t.iX -= 1
         
-    elseif op == :out
+    elseif op == :output
         v.bar = t.yBar[t.iY]
         t.iY -= 1
         u(1).bar += v.bar
         
-    elseif op == :con
+    elseif op == :const
         # no parent nodes; do nothing in this case
         
     elseif nParents == 1
@@ -224,6 +228,9 @@ function rev_adjoint_step!(
 
         elseif op == :cos
             u(1).bar -= v.bar * sin(u(1).val)
+
+        elseif op == :^
+            u(1).bar += v.bar * node.constValue * (u(1).val)^(node.constValue - 1)
             
         else
             throw(DomainError("unsupported elemental operation: " * String(op)))
@@ -244,7 +251,14 @@ function rev_adjoint_step!(
         elseif op == :/
             u(1).bar += v.bar / u(2).val
             u(2).bar -= v.bar * u(1).val / ((u(2).val)^2)
-            
+
+        elseif op == :^
+            u2Node = tape.nodeList[node.parentIndices[2]]
+            if u2Node.operation == :const
+                u(1).bar += v.bar * u2Node.constValue * (u(1).val)^(u2Node.constValue - 1)
+            else
+                throw(DomainError("x^y term with varying y; write this as exp(y*log(x)) instead"))
+            end
         else
             throw(DomainError("unsupported elemental operation: " * String(op)))
         end

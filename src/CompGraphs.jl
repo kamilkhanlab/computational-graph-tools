@@ -33,9 +33,9 @@ export load_function!, is_function_loaded
 # but could easily be Any or Nothing for simplicity.
 struct GraphNode{P}
     operation::Symbol
-    parentIndices::Vector{Int}  # identify operands of "operation"
-    constValue::Float64         # only used when "operation" = :con
-    data::P                     # hold extra node-specific data
+    parentIndices::Vector{Int}       # identify operands of "operation"
+    constValue::Union{Float64, Int}  # only used when "operation" = :const or :power
+    data::P                          # hold extra node-specific data
 end
 
 struct CompGraph{T, P}
@@ -61,8 +61,8 @@ end
 
 # A GraphNode.operation can be any Symbol from the following lists
 unaryOpList = [:-, :inv, :exp, :log, :sin, :cos, :abs]
-binaryOpList = [:+, :-, :*, :/, :max, :min, :hypot]
-customOpList = [:inp, :out, :con]   # input, output, and Float64 constant
+binaryOpList = [:+, :-, :*, :/, :^, :max, :min, :hypot]
+customOpList = [:input, :output, :const]   # input, output, and Float64 constant
 
 # print graph or individual nodes
 opStringDict = Dict(
@@ -77,20 +77,23 @@ opStringDict = Dict(
     :- => " - ",
     :* => " * ",
     :/ => " / ",
+    :^ => " ^ ",
     :max => "max",
     :min => "min",
     :hypot => "hyp",
-    :inp => "inp",
-    :out => "out",
-    :con => "con"
+    :input => "inp",
+    :output => "out",
+    :const => "con",
 )
 
 function Base.show(io::IO, node::GraphNode)
     return print(
         io,
-        opStringDict[node.operation], " | ",
+        opStringDict[node.operation],
+        (node.operation == :power) ? node.constValue : "",
+        " | ",
         isempty(node.parentIndices) ? "[none]" : node.parentIndices, " | ",
-        (node.operation == :con) ? node.constValue : node.data
+        (node.operation == :const) ? node.constValue : node.data
     )
 end
 
@@ -118,7 +121,7 @@ function load_function!(
     xGB = GraphBuilder{P}[]
     for i = 1:(graph.domainDim)
         push!(xGB, GraphBuilder{P}(i, graph))
-        push!(graph.nodeList, GraphNode{P}(:inp, Int[], deepcopy(defaultP)))
+        push!(graph.nodeList, GraphNode{P}(:input, Int[], 0.0, deepcopy(defaultP)))
     end
 
     # push new nodes for all intermediate operations, using operator overloading
@@ -127,7 +130,7 @@ function load_function!(
     # push new nodes for function outputs
     for yComp in yGB
         outputData = deepcopy(defaultP)
-        outputNode = GraphNode{P}(:out, [yComp.index], outputData)
+        outputNode = GraphNode{P}(:output, [yComp.index], 0.0, outputData)
         push!(graph.nodeList, outputNode)
     end
 end
@@ -145,7 +148,7 @@ macro define_GraphBuilder_unary_op_rule(op)
             prevNodes = parentGraph.nodeList
             
             newNodeData = deepcopy(prevNodes[u.index].data)
-            newNode = GraphNode{P}($op, [u.index], newNodeData)
+            newNode = GraphNode{P}($op, [u.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
             return GraphBuilder{P}(length(prevNodes), parentGraph)
@@ -164,12 +167,14 @@ function Base.promote(uA::GraphBuilder{P}, uB::Float64) where P
     prevNodes = parentGraph.nodeList
 
     newNodeData = deepcopy(prevNodes[uA.index].data)
-    newNode = GraphNode{P}(:con, Int[], uB, newNodeData)
+    newNode = GraphNode{P}(:const, Int[], uB, newNodeData)
     push!(prevNodes, newNode)
 
     return (uA, GraphBuilder{P}(length(prevNodes), parentGraph))
 end
-Base.promote(uA::Float64, uB::GraphBuilder{P}) where P = reverse(promote(uB, uA))
+function Base.promote(uA::Float64, uB::GraphBuilder{P}) where P
+    return reverse(promote(uB, uA))
+end
 Base.promote(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P = (uA, uB)
 
 macro define_GraphBuilder_binary_op_rule(op)
@@ -180,7 +185,7 @@ macro define_GraphBuilder_binary_op_rule(op)
             prevNodes = parentGraph.nodeList
             
             newNodeData = deepcopy(prevNodes[uA.index].data)
-            newNode = GraphNode{P}($op, [uA.index, uB.index], newNodeData)
+            newNode = GraphNode{P}($op, [uA.index, uB.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
             return GraphBuilder{P}(length(prevNodes), parentGraph)
@@ -198,6 +203,17 @@ end
 
 for i in 1:length(binaryOpList)
     @eval @define_GraphBuilder_binary_op_rule $binaryOpList[$i]
+end
+
+function Base.:^(uA::GraphBuilder{P}, uB::Int) where P
+    parentGraph = uA.graph
+    prevNodes = parentGraph.nodeList
+    
+    newNodeData = deepcopy(prevNodes[uA.index].data)
+    newNode = GraphNode{P}(:^, [uA.index], uB, newNodeData)
+    push!(prevNodes, newNode)
+    
+    return GraphBuilder{P}(length(prevNodes), parentGraph)
 end
 
 end # module

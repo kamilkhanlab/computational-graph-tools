@@ -1,11 +1,11 @@
 # test ReverseAD.jl
 
-include("ReverseAD.jl")
+include("../src/ReverseAD.jl")
 
 using .ReverseAD
 
 # construct AD tape for provided function
-f(x) = [x[1] - x[2]]
+f(x) = [x[1] - x[2]^2]
 fDomainDim = 3
 fRangeDim = 1
 tape = generate_tape(f, fDomainDim, fRangeDim)
