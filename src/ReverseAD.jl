@@ -18,7 +18,7 @@ module ReverseAD
 
 include("CompGraphs.jl")
 
-using .CompGraphs
+using .CompGraphs, Printf
 
 export generate_tape, reverse_AD!
 
@@ -32,7 +32,7 @@ end
 NodeData() = NodeData(0.0, 0.0)
 
 # called when printing NodeData
-Base.show(io::IO, n::NodeData) = print(io, n.val, ", ", n.bar)
+Base.show(io::IO, n::NodeData) = @printf(io, "val: % .3e, bar: % .3e", n.val, n.bar)
 
 # struct for holding information not specific to an individual node
 mutable struct TapeData

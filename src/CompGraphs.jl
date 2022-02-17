@@ -25,6 +25,8 @@ Written by Kamil Khan on February 10, 2022
 =#
 module CompGraphs
 
+using Printf
+
 export CompGraph, GraphNode
 
 export load_function!, is_function_loaded
@@ -90,20 +92,20 @@ function Base.show(io::IO, node::GraphNode)
     nParents = length(parents)
 
     if (node.operation == :^) && (length(parents) == 1)
-        opString = " ^" * string(node.constValue)
+        opString = @sprintf " ^%1d" node.constValue
     else
         opString = opStringDict[node.operation]
     end
 
     if nParents <= 2
-        oneParent(i::Int) = (nParents < i) ? "   " : string(parents[i]; pad=3)
-        parentString = oneParent(1) * " " * oneParent(2)
+        oneParent(i::Int) = (nParents < i) ? "   " : @sprintf "%-3d" parents[i]
+        parentString = oneParent(1) * "  " * oneParent(2)
     else
         parentString = string(parents)
     end
 
     if node.operation == :const
-        dataString = string(node.constValue)
+        dataString = @sprintf "const: % .3e" node.constValue
     else
         dataString = string(node.data)
     end
@@ -114,10 +116,10 @@ end
 
 function Base.show(io::IO, graph::CompGraph)
     return begin
-        println(" index | op  | parents | data")
+        println(" index | op  | parents  | data")
         println(" ------------------------------")
         for (i, node) in enumerate(graph.nodeList)
-            print("   ", string(i; pad=3), " | ")
+            @printf "   %3d | " i
             println(node)
         end
     end
