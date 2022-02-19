@@ -290,7 +290,8 @@ function generate_revAD_matlab_code!(
                 %
                 % x, y, xBar, and yBar are all column vectors of appropriate dimension.""")
         if tape.rangeDim == 1
-            println(file, "% If yBar = [1.0], then xBar will be the gradient vector of f at x.")
+            println(file, "% If yBar = [1.0], then xBar will be the gradient vector of "
+                    * funcName * " at x.")
         end
         println(file, """
                 %

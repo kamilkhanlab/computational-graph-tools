@@ -53,5 +53,5 @@ println("    f(x) = ", y2)
 println("    gradient of f at x = ", xBar2)
 
 # generate reverse AD code in MATLAB
-generate_revAD_matlab_code!(tape1, "f1")
-println("\nMATLAB reverse AD code generated for Example 1 as f1RevAD.m")
+generate_revAD_matlab_code!(tape1, "f")
+println("\nMATLAB reverse AD code generated for Example 1 as fRevAD.m")
