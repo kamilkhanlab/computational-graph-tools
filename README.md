@@ -40,7 +40,9 @@ end
 This is the same function `f` as before. A computational graph of `f` is a directed acyclic graph with one node for each intermediate quantity `v[i]` in this representation. Each node `v[i]` "knows" its index `i` and the mathematical operation that it corresponds to, and is connected by an edge to each previous node `v[j]` that was an input of this operation.
 
 ### Implementation overview
-The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes. A `GraphNode{P}` has the following fields:
+The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes. 
+
+A `GraphNode{P}` has the following fields:
 
 - `operation::Symbol`: the mathematical operation described by the node (e.g. `:+`). The supported operations are listed in `unaryOpList` and `binaryOpList` in [CompGraphs.jl](src/CompGraphs.jl).
 - `parentIndices::Vector{Int}`: list of indices of parent nodes, representing inputs of this node's `operation`.
@@ -56,8 +58,11 @@ A `CompGraph{T, P}` has the following fields:
 
 The following functions are exported:
 
-- `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: loads the composite function `f` into `graph`, which must be constructed in advance. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}`.
-- `is_function_loaded(graph::CompGraph)`: checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
+- `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: 
+  -   loads the composite function `f` into `graph`, which must be constructed in advance. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}`.
+
+- `is_function_loaded(graph::CompGraph)::Bool`: 
+  - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
 
 The following  constructor for `CompGraph` is available in addition to the usual default constructor: 
 
@@ -71,9 +76,17 @@ The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightfo
 
 The features of the `ReverseAD` module are illustrated in [testRevAD.jl](test/testRevAD.jl). The module exports the following functions:
 
-- `record_tape(f::Function, domainDim::Int, rangeDim::Int)`: returns an AD-amenable "tape" for the provided function `f`, which is secretly just a specialized `CompGraph`. The domain and range dimensions must be provided, and `f` must be of the format required by `CompGraphs::load_function!`. 
+- `tape = record_tape(f::Function, domainDim::Int, rangeDim::Int)`: 
 
-- `reverse_AD!(tape, x::Vector{Float64}, yBar::Vector{Float64})`: performs the reverse mode of AD on the output `tape` of `record_tape`. Returns `(y, xBar)`, where, with `f` denoting the recorded function, `y = f(x)` and `xBar = (Df(x))'*yBar`.
+  - returns an AD-amenable "tape" for the provided function `f`, which is secretly just a specialized `CompGraph`. The domain and range dimensions must be provided, and `f` must be of the format required by `CompGraphs::load_function!`. 
+
+- `(y, xBar) = reverse_AD!(tape::CompGraph, x::Vector{Float64}, yBar::Vector{Float64})`: 
+
+  - performs the reverse mode of AD on the output `tape` of `record_tape`. With `f` denoting the recorded function, this returns `y = f(x)` and `xBar = (Df(x))'*yBar`. In particular, if `f` is scalar-valued and `yBar = [1.0]`, then `xBar` is the gradient of `f` at `x`. The `data` fields of `tape` and its nodes are used to hold results of intermediate computations.
+
+- `generate_revAD_matlab_code!(tape::CompGraph, funcName::AbstractString = "f", fileName::AbstractString = funcName * "RevAD")`
+
+  - creates a MATLAB file `fileName.m` that carries out the reverse AD mode for the function recorded in `tape` by `record_tape`. This is difficult to do in MATLAB itself, and illustrates how to use a `CompGraph` in code generation.
 
 ## References
 to be written
