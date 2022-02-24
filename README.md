@@ -41,21 +41,21 @@ This is the same function `f` as before. A computational graph of `f` is a direc
 ### Implementation overview
 The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes. 
 
-A `GraphNode{P}` has the following fields:
+#### Fields of `GraphNode{P}`:
 
 - `operation::Symbol`: the mathematical operation described by the node (e.g. `:+`). The supported operations are listed in `unaryOpList` and `binaryOpList` in [CompGraphs.jl](src/CompGraphs.jl).
 - `parentIndices::Vector{Int}`: list of indices of parent nodes, representing inputs of this node's `operation`.
 - `constValue::Union{Float64, Int}`: holds operation-specific constants such as the constant integer exponent `3` in the cube operation `f(x) = x^3`. Most operations don't use this field.
-- `data::P`: any application-specific data pertaining to this particular node. The parameter `P` may represent e.g. a user-defined mutable struct.
+- `data::P`: any application-specific data or computational results pertaining to this particular node. The parameter `P` may represent e.g. a user-defined mutable struct.
 
-A `CompGraph{T, P}` has the following fields:
+#### Fields of `CompGraph{T, P}`:
 
 - `nodeList::Vector{GraphNode{P}}`: holds the nodes of the graph.
 - `domainDim::Int`: domain dimension of the represented function.
 - `rangeDim::Int`: range dimension ofo the represented function.
-- `data::T`: any application-specific data that is not specific to one particular node.
+- `data::T`: any application-specific data or results that are not specific to one particular node.
 
-The following functions are exported:
+#### Exported functions:
 
 - `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: 
   -   loads the composite function `f` into `graph`, which must be constructed in advance. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}` output, but without actually specifying that these input/outputs are `Float64`s.
@@ -63,9 +63,9 @@ The following functions are exported:
 - `is_function_loaded(graph::CompGraph)::Bool`: 
   - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
 
-The following  constructor for `CompGraph` is available in addition to the usual default constructor: 
+The following constructor for `CompGraph` is available in addition to the usual default constructor: 
 
-- `CompGraph{T, P}(domainDim::Int, rangeDim::Int) where {T, P}`: a simple constructor, which requires that a constructor `T()` (with no arguments) is available to provide a value for `this.data`. 
+- `CompGraph{T, P}(domainDim::Int, rangeDim::Int) where {T, P}`: requires that a constructor `T()` (with no arguments) is available to provide a value for `this.data`. 
 
 ## Reverse AD mode implementation
 The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions. This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation. 
