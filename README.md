@@ -36,7 +36,22 @@ function f(x)
   return v[12]
 end
 ```
-This is the same function `f` as before. A computational graph of `f` is a directed acyclic graph with one node for each intermediate quantity `v[i]` in this representation. Each node `v[i]` "knows" its index `i` and the mathematical operation that it corresponds to, and is connected by an edge to each previous node `v[j]` that was an input of this operation.
+This is the same function `f` as before. A computational graph of `f` is a directed acyclic graph with one node for each intermediate quantity `v[i]` in this representation. Each node `v[i]` "knows" its index `i` and the mathematical operation that it corresponds to, and is connected by an edge from each previous node `v[j]` that was an input of this operation:
+```mermaid
+flowchart LR
+    1(["x[1]"]) --> 4[-]
+    3([1.0]) --> 4
+    4 --> 5[^2]
+    1 --> 6[^2]
+    2(["x[2]"]) --> 7[-]
+    6 --> 7
+    7 --> 8[^2]
+    9([100.0]) --> 10[*]
+    8 --> 10
+    5 --> 11[+]
+    10 --> 11
+    11 --> 12(["f(x)"])
+```
 
 ### Implementation overview
 The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes. 
