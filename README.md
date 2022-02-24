@@ -73,7 +73,7 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
 #### Exported functions:
 
 - `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: 
-  -   loads the composite function `f` into `graph`, which must be constructed in advance. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}` output, but without actually specifying that these input/outputs are `Float64`s.
+  -   modifies `graph` to contain a computational graph for the composite function `f`. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}` output, but without actually specifying that these input/outputs are `Float64`s.
 
 - `is_function_loaded(graph::CompGraph)::Bool`: 
   - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
