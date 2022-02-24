@@ -103,12 +103,20 @@ The features of the `ReverseAD` module are illustrated in [testRevAD.jl](test/te
 ### Example
 The usage of `ReverseAD` is illustrated by the script [testRevAD.jl](test/testRevAD.jl), which can be run from the terminal if this repository is cloned. Consider again the following function, with a domain dimension of `2` and a range dimension of `1`.
 ```julia
-f(x) = (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2
+function f(x)
+  y = (1.0 - x[1])^2
+  y += 100.0*(x[2] - x[1]^2)^2
+  return y
+end
 ```
 
 We may generate an AD tape for `f` by any of the following methoods, after `using .ReverseAD`. We may define `f` in advance and then load it into `record_tape`:
 ```julia
-f(x) = (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2
+function f(x)
+  y = (1.0 - x[1])^2
+  y += 100.0*(x[2] - x[1]^2)^2
+  return y
+end
 tape = record_tape(f, 2, 1)
 ```
 Or, we may load it in as a one-liner anonymous function:
@@ -117,8 +125,10 @@ tape = record_tape(x -> (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2, 2, 1)
 ```
 Or, we may use Julia's `do` syntax, which might be handy for longer anonymous functions:
 ```julia
-tape = record_tape(2, 1) do
-  return (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2, 2, 1)
+tape = record_tape(2, 1) do x
+  y = (1.0 - x[1])^2
+  y += 100.0*(x[2] - x[1]^2)^2
+  return y
 end
 ```
 At this point, we may perform the reverse AD mode on `tape`. The following command computes the gradient `xBar` of `f` at `[2.0, 2.0]`:
