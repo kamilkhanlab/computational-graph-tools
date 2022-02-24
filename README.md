@@ -12,7 +12,7 @@ A computational graph represents a composite function as its individual elementa
 ```julia
 f(x) = (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2
 ```
-This function is not intinsic to Julia, but does depend on various elemental "scientific calculator" operations that Julia understands. We could reformulate `f` to explicitly consider its elemental operations one by one in a recipe:
+This function is not intrinsic to Julia, but does depend on various elemental "scientific calculator" operations that Julia understands. We could reformulate `f` to explicitly consider these elemental operations one by one in a recipe:
 ```julia
 function f(x)
 v = zeros(12)
