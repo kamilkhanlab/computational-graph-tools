@@ -20,7 +20,7 @@ include("CompGraphs.jl")
 
 using .CompGraphs, Printf
 
-export generate_tape, reverse_AD!, generate_revAD_matlab_code!
+export record_tape, reverse_AD!, generate_revAD_matlab_code!
 
 # struct for holding node-specific information in computational graph
 mutable struct NodeData
@@ -57,13 +57,13 @@ TapeData() = TapeData(
 )
 
 # create a CompGraph "tape" of a provided funcntion for reverse AD
-function generate_tape(
+function record_tape(
     f::Function,
     domainDim::Int,
     rangeDim::Int
 )
     tape = CompGraph{TapeData, NodeData}(domainDim, rangeDim)
-    load_function!(tape, f, NodeData())
+    load_function!(f, tape, NodeData())
     tape.data.areBarsZero = false
     return tape
 end
@@ -310,13 +310,13 @@ function generate_revAD_matlab_code!(
         tape.data.iX = 1
         tape.data.iY = 1
         for (i, node) in enumerate(tape.nodeList)
-            fwd_matlab_codeGen_step!(tape, file, i, node)
+            fwd_matlab_codeGen_step!(file, tape, i, node)
         end
         println(file, """
                 
                 % evaluate xBar with reverse sweep through computational graph""")
         for (i, node) in Iterators.reverse(enumerate(tape.nodeList))
-            rev_matlab_codeGen_step!(tape, file, i, node)
+            rev_matlab_codeGen_step!(file, tape, i, node)
         end
         println(file, """
                 
@@ -325,8 +325,8 @@ function generate_revAD_matlab_code!(
 end
 
 function fwd_matlab_codeGen_step!(
+    io::IO,
     tape::CompGraph{TapeData, NodeData},
-    io::IOStream,
     i::Int,
     node::GraphNode{NodeData}
 )
@@ -406,8 +406,8 @@ function fwd_matlab_codeGen_step!(
 end
 
 function rev_matlab_codeGen_step!(
+    io::IO,
     tape::CompGraph{TapeData, NodeData},
-    io::IOStream,
     i::Int,
     node::GraphNode{NodeData}
 )

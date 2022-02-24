@@ -8,8 +8,7 @@ using .ReverseAD
 ##   from Example 2.2 of Naumann (2012), DOI:10.1137/1.9781611972078
 
 # construct AD tape for function
-f1(x) = (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2
-tape1 = generate_tape(f1, 2, 1)
+tape1 = record_tape(x -> (1.0 - x[1])^2 + 100.0*(x[2] - x[1]^2)^2, 2, 1)
 
 # carry out reverse AD mode on tape
 x1 = [2.0, 2.0]
@@ -27,7 +26,8 @@ println("    gradient of f at x = ", xBar1)
 ##   from Section 1.4.3 of Naumann (2012), DOI:10.1137/1.9781611972078
 
 # construct AD tape for function
-function g2(x, n)
+n = 10    # domain dimension
+tape2 = record_tape(n, 1) do x
     y = 0.0
     for i in 1:(n-1)
         y += (1.0 - x[i])^2
@@ -35,10 +35,6 @@ function g2(x, n)
     end
     return y
 end
-
-n = 10             # domain dimension
-f2(x) = g2(x, n)   # fix n at 10
-tape2 = generate_tape(f2, n, 1)
 
 # carry out reverse AD mode on tape
 x2 = 2.0*ones(n)
@@ -53,5 +49,5 @@ println("    f(x) = ", y2)
 println("    gradient of f at x = ", xBar2)
 
 # generate reverse AD code in MATLAB
-generate_revAD_matlab_code!(tape1, "f")
+generate_revAD_matlab_code!(tape1)
 println("\nMATLAB reverse AD code generated for Example 1 as fRevAD.m")

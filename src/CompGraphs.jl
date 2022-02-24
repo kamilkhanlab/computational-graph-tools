@@ -8,13 +8,17 @@ graphs are required for implementing certain numerical methods, such as:
 
 - the standard reverse/adjoint mode of automatic differentiation (AD)
 
+- the "branch-locking" method for efficient reverse-AD-like generalized
+  differentiation by Khan (2018)
+  https://doi.org/10.1080/10556788.2017.1341506
+
 - the "cone-squashing" method for generalized differentiation 
   by Khan and Barton (2012, 2013)
-  (https://doi.org/10.1145/2491491.2491493)
+  https://doi.org/10.1145/2491491.2491493
 
 - the "reverse McCormick" convex relaxations incorporating constraint propagation, 
   by Wechsung et al. (2015)
-  (https://doi.org/10.1007/s10898-015-0303-6)
+  https://doi.org/10.1007/s10898-015-0303-6
 
 "load_function!" in this module uses operator overloading to construct the 
 computational graph of a finite composition of supported operations. Each 
@@ -36,7 +40,7 @@ export load_function!, is_function_loaded
 struct GraphNode{P}
     operation::Symbol
     parentIndices::Vector{Int}       # identify operands of "operation"
-    constValue::Union{Float64, Int}  # only used when "operation" = :const or :power
+    constValue::Union{Float64, Int}  # only used when "operation" = :const or :^
     data::P                          # hold extra node-specific data
 end
 
@@ -127,18 +131,19 @@ end
 
 # load in a function using operator overloading, and store its computational graph
 function load_function!(
-    graph::CompGraph{T, P},
     f::Function,
-    defaultP::P
+    graph::CompGraph{T, P},
+    initP::P
 ) where {T, P}
     
     empty!(graph.nodeList)
     
     # push new nodes for function inputs
-    xGB = GraphBuilder{P}[]
-    for i = 1:(graph.domainDim)
-        push!(xGB, GraphBuilder{P}(i, graph))
-        push!(graph.nodeList, GraphNode{P}(:input, Int[], 0.0, deepcopy(defaultP)))
+    xGB = [GraphBuilder{P}(i, graph) for i=1:(graph.domainDim)]
+    for xComp in xGB
+        inputData = deepcopy(initP)
+        inputNode = GraphNode{P}(:input, Int[], 0.0, inputData)
+        push!(graph.nodeList, inputNode)
     end
 
     # push new nodes for all intermediate operations, using operator overloading
@@ -149,7 +154,7 @@ function load_function!(
 
     # push new nodes for function outputs
     for yComp in yGB
-        outputData = deepcopy(defaultP)
+        outputData = deepcopy(initP)
         outputNode = GraphNode{P}(:output, [yComp.index], 0.0, outputData)
         push!(graph.nodeList, outputNode)
     end
