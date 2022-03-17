@@ -1,5 +1,17 @@
 # computational-graph-tools
-A Julia module for automatically constructing the computational graph/tape of a supplied composite function, and an implementation of the reverse mode of automatic differentiation (AD) that operates on this graph to either compute adjoint derivatives or to generate MATLAB code that computes adjoint derivatives. These implementations are designed to be relatively straightforward to understand and adapt, and  without depending on any packages external to Julia.
+A Julia module for automatically constructing the computational graph/tape of a supplied composite function, and an implementation of the reverse mode of automatic differentiation (AD) that operates on this graph to either: 
+
+- efficiently compute adjoint derivatives, or 
+- generate MATLAB code that computes adjoint derivatives. 
+
+These implementations are designed to be relatively straightforward to understand and adapt, and  without depending on any packages external to Julia.
+
+Beyond the reverse AD mode, the following numerical methods require access to a function's computational graph, and could be implemented using the `CompGraphs` module provided here:
+
+- [reverse propagation of subgradients](https://doi.org/10.1007/978-3-642-30023-3_10) of McCormick convex relaxations (Beckers et al., 2012)
+- [reverse McCormick relaxations](https://doi.org/10.1007/s10898-015-0303-6) that handle equality constraints (Wechsung et al., 2015)
+- [the "cone-squashing" method](https://doi.org/10.1145/2491491.2491493) for generalized derivative evaluation for nonsmooth functions (Khan and Barton, 2013); this method provides more information but is less efficient than the later [nonsmooth vector forward AD mode](https://github.com/kamilkhanlab/nonsmooth-forward-ad) (Khan and Barton, 2015).
+- [the "branch-locking" method](https://doi.org/10.1080/10556788.2017.1341506) for efficient generalized derivative evaluation for nonsmooth functions (Khan, 2018), which borrows many of the benefits of the smooth reverse AD mode, and extends to implicit functions and inverse functions.
 
 Tested in Julia v1.4.1.
 
