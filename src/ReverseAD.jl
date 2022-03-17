@@ -274,8 +274,8 @@ end
 # generate MATLAB code for performing the reverse AD mode on the graphed function
 function generate_revAD_matlab_code!(
     tape::CompGraph{TapeData, NodeData},
-    funcName::AbstractString = "f",
-    fileName::AbstractString = funcName * "RevAD"
+    tapedFuncName::AbstractString = "f",
+    fileName::AbstractString = tapedFuncName * "RevAD"
 )
     # initial check
     (is_function_loaded(tape)) ||
@@ -283,15 +283,15 @@ function generate_revAD_matlab_code!(
 
     # generate MATLAB script
     open(fileName * ".m", "w") do file
-        print(file, "% Computes y = " * funcName * "(x)")
-        println(file, " and xBar = (D" * funcName * "(x))'*yBar, using the reverse mode of")
+        print(file, "% Computes y = " * tapedFuncName * "(x)")
+        println(file, " and xBar = (D" * tapedFuncName * "(x))'*yBar, using the reverse mode of")
         println(file, """
                 % automatic differentiation (AD). 
                 %
                 % x, y, xBar, and yBar are all column vectors of appropriate dimension.""")
         if tape.rangeDim == 1
             println(file, "% If yBar = [1.0], then xBar will be the gradient vector of "
-                    * funcName * " at x.")
+                    * tapedFuncName * " at x.")
         end
         println(file, """
                 %
@@ -302,8 +302,8 @@ function generate_revAD_matlab_code!(
         println(file, """
                 v = zeros(l, 1);  % values at each node of computational graph
                 vBar = zeros(size(v));  % adjoints at each node of computational graph""")
-        println(file, "y = zeros(size(yBar));  % will be " * funcName * "(x)")
-        println(file, "xBar = zeros(size(x));  % will be (D" * funcName * "(x))'*yBar")
+        println(file, "y = zeros(size(yBar));  % will be " * tapedFuncName * "(x)")
+        println(file, "xBar = zeros(size(x));  % will be (D" * tapedFuncName * "(x))'*yBar")
         println(file, """
                 
                 % evaluate y with forward sweep through computational graph""")

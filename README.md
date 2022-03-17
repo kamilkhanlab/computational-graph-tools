@@ -108,9 +108,9 @@ The features of the `ReverseAD` module are illustrated in [testRevMode.jl](test/
 
   - performs the reverse mode of AD on the output `tape` of `record_tape`. With `f` denoting the recorded function, this returns `y = f(x)` and `xBar = (Df(x))'*yBar`. In particular, if `f` is scalar-valued and `yBar = [1.0]`, then `xBar` is the gradient of `f` at `x`. The `data` fields of `tape` and its nodes are used to hold results of intermediate computations.
 
-- `generate_revAD_matlab_code!(tape::CompGraph, funcName::AbstractString = "f", fileName::AbstractString = funcName * "RevAD")`
+- `generate_revAD_matlab_code!(tape::CompGraph, tapedFuncName::AbstractString = "f", fileName::AbstractString = tapedFuncName * "RevAD")`
 
-  - creates a MATLAB function `fileName` in a file `fileName.m` that carries out the reverse AD mode for the composite function recorded in `tape` by `record_tape`. The input `funcName` specifies how the composite function is named in MATLAB comments. Automatically generating MATLAB code for the reverse AD mode is difficult using MATLAB alone; this function illustrates how to use a `CompGraph` for code generation.
+  - creates a MATLAB script `fileName.m` containing a function `fileName`, which carries out the reverse AD mode for the composite function recorded in `tape` by `record_tape`. The input `tapedFuncName` specifies how this composite function is named in MATLAB comments. Automatically generating MATLAB code for the reverse AD mode is difficult using MATLAB alone; this function illustrates how to use a `CompGraph` for code generation.
 
 ### Example
 The usage of `ReverseAD` is illustrated by the script [testRevMode.jl](test/testRevMode.jl), which can be run from the terminal if this repository is cloned. Consider again the following function, with a domain dimension of `2` and a range dimension of `1`.
