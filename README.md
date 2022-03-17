@@ -98,7 +98,7 @@ The following constructor for `CompGraph` is available in addition to the usual 
 The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions, as described by Griewank and Walther (2008). This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation. 
 
 ### Overview
-The features of the `ReverseAD` module are illustrated in [testRevAD.jl](test/testRevAD.jl). The module exports the following functions:
+The features of the `ReverseAD` module are illustrated in [testRevMode.jl](test/testRevMode.jl). The module exports the following functions:
 
 - `tape = record_tape(f::Function, domainDim::Int, rangeDim::Int)`: 
 
@@ -113,7 +113,7 @@ The features of the `ReverseAD` module are illustrated in [testRevAD.jl](test/te
   - creates a MATLAB function `fileName` in a file `fileName.m` that carries out the reverse AD mode for the composite function recorded in `tape` by `record_tape`. The input `funcName` specifies how the composite function is named in MATLAB comments. Automatically generating MATLAB code for the reverse AD mode is difficult using MATLAB alone; this function illustrates how to use a `CompGraph` for code generation.
 
 ### Example
-The usage of `ReverseAD` is illustrated by the script [testRevAD.jl](test/testRevAD.jl), which can be run from the terminal if this repository is cloned. Consider again the following function, with a domain dimension of `2` and a range dimension of `1`.
+The usage of `ReverseAD` is illustrated by the script [testRevMode.jl](test/testRevMode.jl), which can be run from the terminal if this repository is cloned. Consider again the following function, with a domain dimension of `2` and a range dimension of `1`.
 ```julia
 function f(x)
   y = (1.0 - x[1])^2
