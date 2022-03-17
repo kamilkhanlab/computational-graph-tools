@@ -95,7 +95,7 @@ The following constructor for `CompGraph` is available in addition to the usual 
 - `CompGraph{T, P}(domainDim::Int, rangeDim::Int) where {T, P}`: requires that a constructor `T()` (with no arguments) is available to provide a value for `this.data`. 
 
 ## Reverse AD mode implementation
-The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions, as described by Griewank and Walther (2008). This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation. 
+The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions, as described by Griewank and Walther (2008). The reverse AD mode evaluates gradients/derivatives for composite functions at a computational cost which doesn't scale with the function's domain dimension. This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation. 
 
 ### Overview
 The features of the `ReverseAD` module are illustrated in [testRevMode.jl](test/testRevMode.jl). The module exports the following functions:
