@@ -102,7 +102,7 @@ The features of the `ReverseAD` module are illustrated in [testRevMode.jl](test/
 
 - `tape = record_tape(f::Function, domainDim::Int, rangeDim::Int)`: 
 
-  - returns an AD-amenable "tape" for the provided function `f`, which is secretly just a specialized `CompGraph`. The domain and range dimensions must be provided, and `f` must be of the format required by `CompGraphs::load_function!`. 
+  - returns an AD-amenable "tape" for the provided function `f`, which is secretly just a specialized `CompGraph`. The domain and range dimensions must be provided, and `f` must be of the format required by `CompGraphs.load_function!`. 
 
 - `(y, xBar) = reverse_AD!(tape::CompGraph, x::Vector{Float64}, yBar::Vector{Float64})`: 
 
