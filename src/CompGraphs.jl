@@ -65,12 +65,12 @@ function CompGraph{T, P}(n::Int, m::Int) where {T, P}
 end
 
 # A GraphNode.operation can be any Symbol from the following lists
-unaryOpList = [:-, :inv, :exp, :log, :sin, :cos, :abs]
-binaryOpList = [:+, :-, :*, :/, :^, :max, :min, :hypot]
-customOpList = [:input, :output, :const]   # input, output, and Float64 constant
+const unaryOpList = [:-, :inv, :exp, :log, :sin, :cos, :abs]
+const binaryOpList = [:+, :-, :*, :/, :^, :max, :min, :hypot]
+const customOpList = [:input, :output, :const]   # input, output, and Float64 constant
 
 # print graph or individual nodes
-opStringDict = Dict(
+const opStringDict = Dict(
     :- => "neg",
     :inv => "inv",
     :exp => "exp",
@@ -164,28 +164,23 @@ is_function_loaded(graph::CompGraph) = !isempty(graph.nodeList)
 
 ## let GraphBuilder construct a nodeList by operator overloading
 
-# overload unary operations in unaryOpList
-macro define_GraphBuilder_unary_op_rule(op)
-    opEval = eval(op)
-    return quote
-        function Base.$opEval(u::GraphBuilder{P}) where P
+# overload all unary operations in unaryOpList
+for op in unaryOpList
+    @eval begin
+        function Base.$op(u::GraphBuilder{P}) where P
             parentGraph = u.graph
             prevNodes = parentGraph.nodeList
             
             newNodeData = deepcopy(prevNodes[u.index].data)
-            newNode = GraphNode{P}($op, [u.index], 0.0, newNodeData)
+            newNode = GraphNode{P}(Symbol($op), [u.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
             return GraphBuilder{P}(length(prevNodes), parentGraph)
         end
     end
-end
+end 
 
-for i in 1:length(unaryOpList)
-    @eval @define_GraphBuilder_unary_op_rule $unaryOpList[$i]
-end
-
-# overload binary operations in binaryOpList.
+# overload all binary operations in binaryOpList.
 # Uses nontrivial "promote" rules to push Float64 constants to the parent graph
 function Base.promote(uA::GraphBuilder{P}, uB::Float64) where P
     parentGraph = uA.graph
@@ -202,32 +197,27 @@ function Base.promote(uA::Float64, uB::GraphBuilder{P}) where P
 end
 Base.promote(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P = (uA, uB)
 
-macro define_GraphBuilder_binary_op_rule(op)
-    opEval = eval(op)
-    return quote
-        function Base.$opEval(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
+for op in binaryOpList
+    @eval begin
+        function Base.$op(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
             parentGraph = uA.graph
             prevNodes = parentGraph.nodeList
             
             newNodeData = deepcopy(prevNodes[uA.index].data)
-            newNode = GraphNode{P}($op, [uA.index, uB.index], 0.0, newNodeData)
+            newNode = GraphNode{P}(Symbol($op), [uA.index, uB.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
             return GraphBuilder{P}(length(prevNodes), parentGraph)
         end
 
-        function Base.$opEval(uA::GraphBuilder{P}, uB::Float64) where P
-            return $opEval(promote(uA, uB)...)
+        function Base.$op(uA::GraphBuilder{P}, uB::Float64) where P
+            return $op(promote(uA, uB)...)
         end
 
-        function Base.$opEval(uA::Float64, uB::GraphBuilder{P}) where P
-            return $opEval(promote(uA, uB)...)
+        function Base.$op(uA::Float64, uB::GraphBuilder{P}) where P
+            return $op(promote(uA, uB)...)
         end
     end
-end
-
-for i in 1:length(binaryOpList)
-    @eval @define_GraphBuilder_binary_op_rule $binaryOpList[$i]
 end
 
 function Base.:^(uA::GraphBuilder{P}, uB::Int) where P
