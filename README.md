@@ -70,7 +70,7 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
 
 #### Fields of `GraphNode{P}`:
 
-- `operation::Symbol`: the mathematical operation described by the node (e.g. `:+`). The supported operations are listed in `unaryOpList` and `binaryOpList` in [CompGraphs.jl](src/CompGraphs.jl).
+- `operation::Symbol`: the mathematical operation described by the node (e.g. `:+`). The supported operations are listed in `unaryOpList`, `standardBinaryOpList`, and `customBinaryOpList` in [CompGraphs.jl](src/CompGraphs.jl).
 - `parentIndices::Vector{Int}`: list of indices of parent nodes, representing inputs of this node's `operation`.
 - `constValue::Union{Float64, Int}`: holds operation-specific constants such as the constant integer exponent `3` in the cube operation `f(x) = x^3`. Most operations don't use this field.
 - `data::P`: any application-specific data or computational results pertaining to this particular node. The parameter `P` may represent e.g. a user-defined mutable struct.
