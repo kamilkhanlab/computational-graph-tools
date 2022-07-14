@@ -85,7 +85,23 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
 #### Exported functions:
 
 - `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: 
-  -   modifies `graph` to contain a computational graph for the composite function `f`. Each resulting `GraphNode`'s `data` field is initialized with the value `deepcopy(initP)`. The computational graph is generated using operator overloading, passing in an internal `GraphBuilder` object in place of any `Float64`. So, `f` must be written as if it takes a `Vector{Float64}` input, and returns either a `Float64` or `Vector{Float64}` output, but without actually specifying that these input/outputs are `Float64`s.
+  -   modifies `graph` to contain a computational graph for the
+      composite function `f`. Each resulting `GraphNode`'s `data`
+      field is initialized with the value `deepcopy(initP)`. The
+      computational graph is generated using operator overloading,
+      passing in an internal `GraphBuilder` object in place of any
+      `Float64`. So, `f` must be written as if it takes a
+      `Vector{Float64}` input, and returns either a `Float64` or
+      `Vector{Float64}` output, but without actually specifying that
+      these input/outputs are `Float64`s.
+	  
+  - Also permits a keyword argument `shouldMaxBeChangedToAbs::Bool`
+    (default: `false`). If true, then `max` and `min` are rewritten in
+    terms of `abs` before being appended to the computational graph,
+    using the identities:
+	
+	> max(x,y) = 0.5(x + y + abs(x-y));
+	> min(x,y) = 0.5(x + y - abs(x-y))
 
 - `is_function_loaded(graph::CompGraph)::Bool`: 
   - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
