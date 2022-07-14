@@ -100,8 +100,10 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
     terms of `abs` before being appended to the computational graph,
     using the identities:
 	
-	> max(x,y) = 0.5(x + y + abs(x-y));
-	> min(x,y) = 0.5(x + y - abs(x-y))
+	```julia
+	max(x,y) == 0.5*(x + y + abs(x-y))
+	min(x,y) == 0.5*(x + y - abs(x-y))
+	```
 
 - `is_function_loaded(graph::CompGraph)::Bool`: 
   - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
