@@ -6,7 +6,7 @@ A quick implementation of:
 Evaluating an Element of the Clarke Generalized Jacobian of a Piecewise
 Differentiable Function, developed in the article:
 KA Khan & PI Barton (2012),
-TODO: Where Link?
+https://doi.org/10.1145/2491491.2491493
 
 This implementation uses automatic differentiation to numerically determine
 the Jacobian of essentially active functions.
@@ -16,11 +16,12 @@ using the chain rule to calculate the directional derivative of each elemental
 function that makes up the given function 'f'.
 
 It then solves a system of linear equations to evaluate an element of the
-Jacobian of 'f' at some given vector of 'x'.
+generalized Jacobian of 'f' at some given vector of 'x'.
 
 Requires CompGraphs.jl in the same folder.
 
-Written by Maha Chaudhry and Kamil Khan on July nth, 2022
+Written by Maha Chaudhry on July 20th, 2022
+Edited by Kamil Khan
 =#
 
 module ConeSquashing
@@ -297,9 +298,9 @@ function fwd_val_evaluation_step!(
             invDotVal = (-u(2).dotVal / ((u(2).val)^2))
             v.dotVal = (invVal * u(1).dotVal) + (u(1).val * invDotVal)
 
-        elseif op == :^ #TODO: Throw the error. Write this way: exp...
-            throw(DomainError(op, "unsupported elemental operation x^y;
-                rewrite as exp(y*log(x))"))
+        elseif op == :^
+            throw(DomainError(op, "unsupported elemental operation x^y;",
+                "rewrite as exp(y*log(x))"))
         end #if
 
     else
