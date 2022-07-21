@@ -11,12 +11,14 @@ https://doi.org/10.1145/2491491.2491493
 This implementation uses automatic differentiation to numerically determine
 the Jacobian of essentially active functions.
 
+#cut this -----|
 It traverses through a computational graph constructed by CompGraphs.jl
 using the chain rule to calculate the directional derivative of each elemental
 function that makes up the given function 'f'.
 
 It then solves a system of linear equations to evaluate an element of the
 generalized Jacobian of 'f' at some given vector of 'x'.
+-------|
 
 Requires CompGraphs.jl in the same folder.
 
@@ -26,13 +28,12 @@ Edited by Kamil Khan
 
 module ConeSquashing
 
-include("C:/Users/maha-/Documents/GitHub/computational-graph-tools/src/CompGraphs.jl")
+include("CompGraphs.jl")
 
 using .CompGraphs, Printf, LinearAlgebra
 
 export tape_setup,
-    eval_gen_derivative!,
-    fwd_val_evaluation_sweep!
+    eval_gen_derivative!
 
 ## assemble CompGraph "tape" and nodes
 
@@ -200,10 +201,10 @@ function fwd_val_evaluation_step!(
             for (k, dotValK) in enumerate(u(1).dotVal)
                 if kStar != 0 && uStar*dotValK < 0.0
                     if verbosity == 1
+                        display(tape)
                         println("Remedial sweep triggered.\n")
                         println("Setting k* = ", kStar, " ; k = ", k,
                             " ; uj* = ", uStar, " ; uj = ", dotValK, "\n")
-                        display(tape)
                     end #if
 
                     #adjust qMatrix
