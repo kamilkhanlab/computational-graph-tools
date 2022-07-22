@@ -1,8 +1,8 @@
 # computational-graph-tools
-A Julia module for automatically constructing the computational graph/tape of a supplied composite function, and an implementation of the reverse mode of automatic differentiation (AD) that operates on this graph to either: 
+A Julia module for automatically constructing the computational graph/tape of a supplied composite function, and an implementation of the reverse mode of automatic differentiation (AD) that operates on this graph to either:
 
-- efficiently compute adjoint derivatives, or 
-- generate MATLAB code that computes adjoint derivatives. 
+- efficiently compute adjoint derivatives, or
+- generate MATLAB code that computes adjoint derivatives.
 
 These implementations are designed to be relatively straightforward to understand and adapt, and  without depending on any packages external to Julia.
 
@@ -66,7 +66,7 @@ flowchart LR
 ```
 
 ### Implementation overview
-The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes. 
+The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the definitions of two parametric structs: `CompGraph{T, P}` and `GraphNode{P}`. A `CompGraph` is intended to hold the computational graph of a single composite function, and is made up of `GraphNode`s. The parametric types `T` and `P` are intended to hold application-specific data, respectively pertaining to the overall graph and particular nodes.
 
 #### Fields of `GraphNode{P}`:
 
@@ -84,7 +84,7 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
 
 #### Exported functions:
 
-- `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`: 
+- `load_function!(f::Function, graph::CompGraph{T, P}, initP::P) where {T, P}`:
   -   modifies `graph` to contain a computational graph for the
       composite function `f`. Each resulting `GraphNode`'s `data`
       field is initialized with the value `deepcopy(initP)`. The
@@ -94,35 +94,35 @@ The module `CompGraphs` in [CompGraphs.jl](src/CompGraphs.jl) exports the defini
       `Vector{Float64}` input, and returns either a `Float64` or
       `Vector{Float64}` output, but without actually specifying that
       these input/outputs are `Float64`s.
-	  
+
   - Also permits a keyword argument `shouldMaxBeChangedToAbs::Bool`
     (default: `false`). If true, then `max` and `min` are rewritten in
     terms of `abs` before being appended to the computational graph,
     using the identities:
-	
+
 	```julia
 	max(x,y) == 0.5*(x + y + abs(x-y))
 	min(x,y) == 0.5*(x + y - abs(x-y))
 	```
 
-- `is_function_loaded(graph::CompGraph)::Bool`: 
+- `is_function_loaded(graph::CompGraph)::Bool`:
   - checks if a composite function has already been loaded into `graph`, by confirming that `graph.nodeList` is nonempty.
 
-The following constructor for `CompGraph` is available in addition to the usual default constructor: 
+The following constructor for `CompGraph` is available in addition to the usual default constructor:
 
-- `CompGraph{T, P}(domainDim::Int, rangeDim::Int) where {T, P}`: requires that a constructor `T()` (with no arguments) is available to provide a value for `this.data`. 
+- `CompGraph{T, P}(domainDim::Int, rangeDim::Int) where {T, P}`: requires that a constructor `T()` (with no arguments) is available to provide a value for `this.data`.
 
 ## Reverse AD mode implementation
-The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions, as described by Griewank and Walther (2008). The reverse AD mode evaluates gradients/derivatives for composite functions at a computational cost which doesn't scale with the function's domain dimension. This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation. 
+The module `ReverseAD` in [ReverseAD.jl](src/ReverseAD.jl) contains a straightforward implementation of the standard reverse mode of automatic differentiation (AD) for smooth functions, as described by Griewank and Walther (2008). The reverse AD mode evaluates gradients/derivatives for composite functions at a computational cost which doesn't scale with the function's domain dimension. This implementation operates on a `CompGraph` and requires `CompGraphs.jl` in the same directory. It is intended to show how `CompGraphs.jl` may be used for numerical computation.
 
 ### Overview
 The features of the `ReverseAD` module are illustrated in [testRevMode.jl](test/testRevMode.jl). The module exports the following functions:
 
-- `tape = record_tape(f::Function, domainDim::Int, rangeDim::Int)`: 
+- `tape = record_tape(f::Function, domainDim::Int, rangeDim::Int)`:
 
-  - returns an AD-amenable "tape" for the provided function `f`. This tape is secretly just a specialized `CompGraph`. The domain and range dimensions for `f` must be provided, and `f` must be of the format required by `CompGraphs.load_function!`. 
+  - returns an AD-amenable "tape" for the provided function `f`. This tape is secretly just a specialized `CompGraph`. The domain and range dimensions for `f` must be provided, and `f` must be of the format required by `CompGraphs.load_function!`.
 
-- `(y, xBar) = reverse_AD!(tape::CompGraph, x::Vector{Float64}, yBar::Vector{Float64})`: 
+- `(y, xBar) = reverse_AD!(tape::CompGraph, x::Vector{Float64}, yBar::Vector{Float64})`:
 
   - performs the reverse mode of AD on the output `tape` of `record_tape`. With `f` denoting the recorded function, this returns `y = f(x)` and `xBar = (Df(x))'*yBar`. In particular, if `f` is scalar-valued and `yBar = [1.0]`, then `xBar` is the gradient of `f` at `x`. The `data` fields of `tape` and its nodes are used to hold results of intermediate computations.
 
@@ -171,10 +171,57 @@ generate_revAD_matlab_code!(tape)
 ```
 The file generated by this command is included in this repository as [fRevAD.m](test/fRevAD.m).
 
+# cone-squashing implementation
+
+The module [ConeSquashing.jl](src/ConeSquashing.jl) evaluates an element of the generalized Jacobian element of a provided abs-factorable function using the [cone-squashing method](link). This implementation operates on a computational graph, `CompGraph`, and requires CompGraph.jl in the same directory.
+
+## Method outline
+
+Given a non-smooth function `f` and an input vector `x`, this [approach](link) traverses through the function's computational graph, employing the chain rule, to calculate the directional derivative `f(x; qMatrix)`. It then solves a system of linear equations to isolate an element of the generalized Jacobian matrix.
+
+As explained in the paper, there exists some set of directional vectors, `qMatrix` that allow the directional derivative of the function to be equivalent to the generalized Jacobian matrix multiplied by the directional vectors -: `Jf(x)d = f(x; qMatrix)`. The `qMatrix` is initially set to an identity matrix. If intermediate directional derivatives values fail to meet the appropriate conditions at any elemental abs function, the `qMatrix` is adjusted accordingly and a remedial forward AD sweep is completed.
+
+## Exported functions
+
+The module `ConeSquashing` exports the following functions:
+
+- `tape = tape_setup(f::Function, domainDim::Int64, rangeDim::Int64)`
+    - returns an AD-amenable computational graph/tape (`CompGraph`) for the provided function `f`. The function must be expressed as a finite composition of abs value functions and continously differentiable functions and in the format required by `CompGraphs.load_function!`.
+    - domain and range of a function refer to the number of inputs and outputs of function `f` respectively.
+    - note that the `record_tape` function from the `ReverseAD` module is not interchangeable with the `tape_setup` function.
+- `yJac, qMatrix = eval_gen_derivative!(tape::CompGraph{TapeData, NodeData}, x::Vector{Float64}; verbosity::Int64 = 0)`
+    - performs a series of forward sweeps on the output `tape` of `tape_setup` to output `yJac`, an element of the generalized Jacobian matrix of `f` at the given vector `x`, and `qMatrix`.
+    - key argument verbosity can be toggled between `0` and `1` to provide further information on the intermediate sweeps and calculations for `qMatrix`. The default value is `0`.
+
+## Example
+
+The usage of `ConeSquashing` is illustrated by the script [testConeSquashing.jl](test/testConeSquashing.jl). Consider the following non-smooth function, with a domain dimension `2` and range dimension `1` for an input vector `x = [0.0, 0.0]`.
+
+```Julia
+f(x) =  max(min(x[1], -x[2]), x[2] - x[1])
+```
+
+Using the `ConeSquashing` module (after commands `include("ConeSquashing".jl”)` and `using .ConeSquashing`), we can produce an AD tape for the function `f`:
+- By defining f beforehand:
+      ```Julia
+      tape = tape_setup(f, 2, 1)
+      ```
+
+- By defining f as an anonymous function:
+      ```Julia
+      yOutput = tape_setup(2, 1) do x
+          max(min(x[1], -x[2]), x[2] - x[1])
+      end
+      ```
+
+At this point, we can calculate an element of the generalized Jacobian matrix, `yJac`, of the function `f` at an input vector value of `x = [0.0, 0.0]`:
+
+```Julia
+yJac, _ = eval_gen_derivative!(tape, x)
+```
+
 ## References
 
 - A Griewank and A Walther, *Evaluating Derivatives: Principles and Techniques of Algorithmic Differentiation (2nd ed.)*, SIAM, 2008.
 - U Naumann, *The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation*, SIAM, 2012.
-
-
-
+- Kamil A. Khan and Paul I. Barton, [Evaluating an Element of the Clarke Generalized Jacobian of a Piecewise Differentiable Function](https://doi.org/10.1007/978-3-642-30023-3_11), _Recent Advances in Algorithmic Differentiation_, 2012, S. Forth, P. Hovland, E. Phipps, J. Utke, and A. Walther (eds.), Springer, Berlin. 115-125.

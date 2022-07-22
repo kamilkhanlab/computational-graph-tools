@@ -6,7 +6,7 @@ A quick implementation of:
 Evaluating an Element of the Clarke Generalized Jacobian of a Piecewise
 Differentiable Function, developed in the article:
 KA Khan & PI Barton (2012),
-https://doi.org/10.1145/2491491.2491493
+https://doi.org/10.1007/978-3-642-30023-3_11
 
 This implementation uses automatic differentiation to numerically determine
 the Jacobian of essentially active functions.
