@@ -122,6 +122,7 @@ end
 
 function Base.show(io::IO, graph::CompGraph)
     return begin
+        println(io, " Computational graph:\n")
         println(io, " index | op  | parents  | data")
         println(io, " ------------------------------")
         for (i, node) in enumerate(graph.nodeList)
