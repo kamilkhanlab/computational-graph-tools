@@ -122,11 +122,11 @@ end
 
 function Base.show(io::IO, graph::CompGraph)
     return begin
-        println(" index | op  | parents  | data")
-        println(" ------------------------------")
+        println(io, " index | op  | parents  | data")
+        println(io, " ------------------------------")
         for (i, node) in enumerate(graph.nodeList)
-            @printf "   %3d | " i
-            println(node)
+            @printf io "   %3d | " i
+            println(io, node)
         end
     end
 end
