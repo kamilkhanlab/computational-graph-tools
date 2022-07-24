@@ -15,8 +15,7 @@ x1 = [2.0, 2.0]
 yBar1 = [1.0]
 y1, xBar1 = reverse_AD!(tape1, x1, yBar1)
 
-println("For Example 1:")
-println("  Function tape:")
+println("For Example 1:\n")
 println(tape1)
 println("  At x = ", x1, ":")
 println("    f(x) = ", y1)
@@ -41,8 +40,7 @@ x2 = 2.0*ones(n)
 yBar2 = [1.0]
 y2, xBar2 = reverse_AD!(tape2, x2, yBar2)
 
-println("\nFor Example 2:")
-println("  Function tape:")
+println("\nFor Example 2:\n")
 println(tape2)
 println("  At x = ", x2, ":")
 println("    f(x) = ", y2)

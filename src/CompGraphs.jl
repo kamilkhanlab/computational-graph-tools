@@ -51,9 +51,9 @@ struct CompGraph{T, P}
     data::T                     # hold extra data not specific to any one node
 end
 
-struct GraphBuilder{P}
+struct GraphBuilder{T, P}
     index::Int
-    graph::CompGraph
+    graph::CompGraph{T, P}
     changeMaxToAbs::Bool
 end
 
@@ -143,7 +143,7 @@ function load_function!(
     empty!(graph.nodeList)
     
     # push new nodes for function inputs
-    xGB = [GraphBuilder{P}(i, graph, shouldMaxBeChangedToAbs) for i=1:(graph.domainDim)]
+    xGB = [GraphBuilder{T, P}(i, graph, shouldMaxBeChangedToAbs) for i=1:(graph.domainDim)]
     for xComp in xGB
         inputData = deepcopy(initP)
         inputNode = GraphNode{P}(:input, Int[], 0.0, inputData)
@@ -171,7 +171,7 @@ is_function_loaded(graph::CompGraph) = !isempty(graph.nodeList)
 # overload all unary operations in unaryOpList
 for op in unaryOpList
     @eval begin
-        function Base.$op(u::GraphBuilder{P}) where P
+        function Base.$op(u::GraphBuilder{T, P}) where {T, P}
             parentGraph = u.graph
             prevNodes = parentGraph.nodeList
             
@@ -179,14 +179,14 @@ for op in unaryOpList
             newNode = GraphNode{P}(Symbol($op), [u.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
-            return GraphBuilder{P}(length(prevNodes), parentGraph, u.changeMaxToAbs)
+            return GraphBuilder{T, P}(length(prevNodes), parentGraph, u.changeMaxToAbs)
         end
     end
 end 
 
 # overload all binary operations in binaryOpList.
 # Uses nontrivial "promote" rules to push Float64 constants to the parent graph
-function Base.promote(uA::GraphBuilder{P}, uB::Float64) where P
+function Base.promote(uA::GraphBuilder{T, P}, uB::Float64) where {T, P}
     parentGraph = uA.graph
     prevNodes = parentGraph.nodeList
 
@@ -194,16 +194,16 @@ function Base.promote(uA::GraphBuilder{P}, uB::Float64) where P
     newNode = GraphNode{P}(:const, Int[], uB, newNodeData)
     push!(prevNodes, newNode)
 
-    return (uA, GraphBuilder{P}(length(prevNodes), parentGraph, uA.changeMaxToAbs))
+    return (uA, GraphBuilder{T, P}(length(prevNodes), parentGraph, uA.changeMaxToAbs))
 end
-function Base.promote(uA::Float64, uB::GraphBuilder{P}) where P
+function Base.promote(uA::Float64, uB::GraphBuilder{T, P}) where {T, P}
     return reverse(promote(uB, uA))
 end
-Base.promote(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P = (uA, uB)
+Base.promote(uA::GraphBuilder{T, P}, uB::GraphBuilder{T, P}) where {T, P} = (uA, uB)
 
 for op in standardBinaryOpList
     @eval begin
-        function Base.$op(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
+        function Base.$op(uA::GraphBuilder{T, P}, uB::GraphBuilder{T, P}) where {T, P}
             parentGraph = uA.graph
             prevNodes = parentGraph.nodeList
             
@@ -211,7 +211,7 @@ for op in standardBinaryOpList
             newNode = GraphNode{P}(Symbol($op), [uA.index, uB.index], 0.0, newNodeData)
             push!(prevNodes, newNode)
             
-            return GraphBuilder{P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
+            return GraphBuilder{T, P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
         end
     end
 end
@@ -219,7 +219,7 @@ end
 # max/min can be processed like other binary operands,
 # or can be converted to abs using the identities:
 #   max(x,y)==0.5*(x+y+abs(x-y));   min(x,y)==0.5*(x+y-abs(x-y))
-function Base.max(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
+function Base.max(uA::GraphBuilder{T, P}, uB::GraphBuilder{T, P}) where {T, P}
     if uA.changeMaxToAbs
         return 0.5*(uA + uB + abs(uA - uB))
     else
@@ -230,11 +230,11 @@ function Base.max(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
         newNode = GraphNode{P}(:max, [uA.index, uB.index], 0.0, newNodeData)
         push!(prevNodes, newNode)
         
-        return GraphBuilder{P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
+        return GraphBuilder{T, P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
     end
 end
 
-function Base.min(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
+function Base.min(uA::GraphBuilder{T, P}, uB::GraphBuilder{T, P}) where {T, P}
     if uA.changeMaxToAbs
         return 0.5*(uA + uB - abs(uA - uB))
     else
@@ -245,24 +245,24 @@ function Base.min(uA::GraphBuilder{P}, uB::GraphBuilder{P}) where P
         newNode = GraphNode{P}(:min, [uA.index, uB.index], 0.0, newNodeData)
         push!(prevNodes, newNode)
         
-        return GraphBuilder{P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
+        return GraphBuilder{T, P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
     end
 end
 
 for op in [standardBinaryOpList; customBinaryOpList]
     @eval begin
-        function Base.$op(uA::GraphBuilder{P}, uB::Float64) where P
+        function Base.$op(uA::GraphBuilder{T, P}, uB::Float64) where {T, P}
             return $op(promote(uA, uB)...)
         end
 
-        function Base.$op(uA::Float64, uB::GraphBuilder{P}) where P
+        function Base.$op(uA::Float64, uB::GraphBuilder{T, P}) where {T, P}
             return $op(promote(uA, uB)...)
         end
     end
 end
 
 # constant integer exponents are supported
-function Base.:^(uA::GraphBuilder{P}, uB::Int) where P
+function Base.:^(uA::GraphBuilder{T, P}, uB::Int) where {T, P}
     parentGraph = uA.graph
     prevNodes = parentGraph.nodeList
     
@@ -270,7 +270,7 @@ function Base.:^(uA::GraphBuilder{P}, uB::Int) where P
     newNode = GraphNode{P}(:^, [uA.index], uB, newNodeData)
     push!(prevNodes, newNode)
     
-    return GraphBuilder{P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
+    return GraphBuilder{T, P}(length(prevNodes), parentGraph, uA.changeMaxToAbs)
 end
 
 end # module
