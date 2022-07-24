@@ -300,8 +300,7 @@ function fwd_val_evaluation_step!(
             v.dotVal = (invVal * u(1).dotVal) + (u(1).val * invDotVal)
 
         elseif op == :^
-            throw(DomainError(op, "unsupported elemental operation x^y;",
-                "rewrite as exp(y*log(x))"))
+            throw(DomainError(op, "unsupported elemental operation x^y; rewrite as exp(y*log(x))"))
         end #if
 
     else
