@@ -11,15 +11,6 @@ https://doi.org/10.1007/978-3-642-30023-3_11
 This implementation uses automatic differentiation to numerically determine
 the Jacobian of essentially active functions.
 
-#cut this -----|
-It traverses through a computational graph constructed by CompGraphs.jl
-using the chain rule to calculate the directional derivative of each elemental
-function that makes up the given function 'f'.
-
-It then solves a system of linear equations to evaluate an element of the
-generalized Jacobian of 'f' at some given vector of 'x'.
--------|
-
 Requires CompGraphs.jl in the same folder.
 
 Written by Maha Chaudhry on July 20th, 2022
