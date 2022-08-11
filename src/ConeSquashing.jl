@@ -23,7 +23,7 @@ include("CompGraphs.jl")
 
 using .CompGraphs, Printf, LinearAlgebra
 
-export tape_setup,
+export record_tape,
     eval_gen_derivative!
 
 ## assemble CompGraph "tape" and nodes
@@ -31,14 +31,11 @@ export tape_setup,
 # struct for holding node-specific information in computational graph
 mutable struct NodeData
     val::Float64             # value, computed during forward sweep
-    dotVal::Vector{Float64}  # directional derivative value, computed during forward sweep
+    dot::Vector{Float64}     # directional derivative value, computed during forward sweep
 end #struct
 
-# default value of NodeData
-NodeData() = NodeData(0.0, [0.0])
-
 # called when printing NodeData
-Base.show(io::IO, n::NodeData) = @printf(io, "val: % .3e,   dotVal: %s", n.val, n.dotVal)
+Base.show(io::IO, n::NodeData) = @printf(io, "val: % .3e,   dot: %s", n.val, n.dot)
 
 # struct for holding information not specific to an individual node
 mutable struct TapeData
@@ -51,29 +48,36 @@ mutable struct TapeData
     iY::Int64                   # next output component to be processed
 end #struct
 
-# default value of TapeData
-TapeData() = TapeData(
-    Float64[],                      # x
-    Float64[],                      # y
-    Array{Float64}(undef, 0, 0),    # qMatrix
-    Array{Float64}(undef, 0, 0),    # yDot
-    Array{Float64}(undef, 0, 0),    # yJac
-    1,                              # iX
-    1                               # iY
-)
-
 # create a CompGraph "tape" of a provided function
-function tape_setup(
+function record_tape(
     f::Function,
     domainDim::Int64,     # number of inputs
     rangeDim::Int64       # number of outputs
 )
-    tape = CompGraph{TapeData, NodeData}(domainDim, rangeDim)
-    load_function!(f, tape, NodeData(), shouldMaxBeChangedToAbs = true)
+    # default value of TapeData
+    tapeData = TapeData(
+        zeros(domainDim),               # x
+        zeros(rangeDim),                # y
+        Matrix{Float64}(I(domainDim)),  # qMatrix
+        zeros(rangeDim, domainDim),     # yDot
+        zeros(1, domainDim),            # yJac
+        1,                              # iX
+        1                               # iY
+    )
+
+    # default value of NodeData
+    nodeData = NodeData(0.0, zeros(domainDim))
+
+    tape = CompGraph{TapeData, NodeData}(GraphNode{NodeData}[], domainDim,
+        rangeDim, tapeData)
+    load_function!(f, tape, nodeData, shouldMaxBeChangedToAbs = true)
 
     return tape
 
 end #function
+
+# default tolerances; feel free to change.
+const TOLERANCE = 1e-8   # used to decide if we're at the kink of "abs" or "hypot"
 
 ## assemble evaluation procedures for CompGraph "tape"
 
@@ -87,13 +91,13 @@ end
 function eval_gen_derivative!(
     tape::CompGraph{TapeData, NodeData},
     x::Vector{Float64};
-    verbosity::Int64 = 0 # level of printed detail
+    kwargs...
 )
     # convenience label
     t = tape.data
 
-    # sweep evaluation through tape to calculate each node .val and .dotVal
-    fwd_val_evaluation_sweep!(tape, x, sweepMode = MAIN_SWEEP, verbosity = verbosity)
+    # sweep evaluation through tape to calculate each node .val and .dot
+    forward_sweep!(tape, x; sweepMode = MAIN_SWEEP, kwargs...)
 
     # solve system of equations yJac*qMatrix = yDot for yJac
     t.yJac = t.yDot/t.qMatrix
@@ -104,12 +108,12 @@ end #function
 # calculates:
 #   function evaluations for each elemental function of given function 'f'
 #   directional derivatives for each elemental function of given function 'f'
-function fwd_val_evaluation_sweep!(
+function forward_sweep!(
     tape::CompGraph{TapeData, NodeData},
     x::Vector{Float64};
     sweepMode::SweepType = MAIN_SWEEP, # set sweep evaluation procedure
-    nodeCount::Int64 = 0, # number of nodes requiring remedial evaluation for remedial sweep,
-    verbosity::Int64 = 0  # level of printed detail
+    currentNodeI::Int64 = 0, # number of nodes requiring remedial evaluation for remedial sweep,
+    kwargs...
 )
     # convenience label
     t = tape.data
@@ -117,8 +121,7 @@ function fwd_val_evaluation_sweep!(
     # initial checks
     (is_function_loaded(tape)) ||
         throw(DomainError("tape: hasn't been loaded with a function"))
-    lenXIn = length(x)
-    (lenXIn == tape.domainDim) ||
+    (length(x) == tape.domainDim) ||
         throw(DomainError("x: # components doesn't match tape's domainDim"))
 
     # initialize
@@ -128,33 +131,30 @@ function fwd_val_evaluation_sweep!(
     if sweepMode == MAIN_SWEEP
         # initialize
         t.x = x
-        t.y = zeros(tape.rangeDim)
-        t.qMatrix = Matrix{Float64}(I(lenXIn))
-        t.yDot = zeros(tape.rangeDim, tape.domainDim)
-
+        
         # updates nodes, tape.data.y, and tape.data.yDot via forward sweep through tape
         for (i, nodeI) in enumerate(tape.nodeList)
-            fwd_val_evaluation_step!(tape, nodeI, i, sweepMode = MAIN_SWEEP, verbosity = verbosity)
+            forward_step!(tape, nodeI, i; sweepMode = MAIN_SWEEP, kwargs...)
         end #for
 
     elseif sweepMode == REMEDIAL_SWEEP
-        # re-evaluates nodes and tape.data.yDot upto nodeCount
+        # re-evaluates nodes and tape.data.yDot upto currentNodeI
         #    via forward sweep through tape given an adjusted qMatrix
-        for (i, nodeI) in Iterators.take(enumerate(tape.nodeList), nodeCount)
-            fwd_val_evaluation_step!(tape, nodeI, i; sweepMode = REMEDIAL_SWEEP)
+        for (i, nodeI) in Iterators.take(enumerate(tape.nodeList), currentNodeI)
+            forward_step!(tape, nodeI, i; sweepMode = REMEDIAL_SWEEP)
         end #if
     end #if
 
-    return t.y, t.yDot
+    return t.y, t.yDot, t.qMatrix
 
 end #function
 
-function fwd_val_evaluation_step!(
+function forward_step!(
     tape::CompGraph{TapeData, NodeData},
     node::GraphNode{NodeData},
-    nodeCount::Int64; # tracks index of node being evaluated
+    currentNodeI::Int64; # tracks index of node being evaluated
     sweepMode::SweepType = MAIN_SWEEP,
-    verbosity::Int64 = 0
+    verbosity::Int64 = 0 # level of printed detail
 )
     # convenience labels
     op = node.operation
@@ -179,47 +179,41 @@ function fwd_val_evaluation_step!(
             # in this case the power is stored as node.constValue
             v.val = (u(1).val)^(node.constValue)
 
-        # abs is specific to the forward sweep.
-        # keeping here avoids an endless remedial loop.
         elseif op == :abs
             v.val = abs(u(1).val)
 
             # initialize
-            kStar, uStar = 0, 0.0
+            kStar = 0
+            uStar = 0.0
             trigger = false
 
-            # check if qMatrix needs to be adjusted
-            for (k, dotValK) in enumerate(u(1).dotVal)
-                if kStar != 0 && uStar*dotValK < 0.0
+            # adjusts qMatrix and updates CompGraph as needed
+            for (k, dotK) in enumerate(u(1).dot)
+                if kStar != 0 && uStar*dotK < 0.0
                     if verbosity == 1
                         display(tape)
                         println("Remedial sweep triggered.\n")
                         println("Setting k* = ", kStar, " ; k = ", k,
-                            " ; uj* = ", uStar, " ; uj = ", dotValK, "\n")
+                            " ; uj* = ", uStar, " ; uj = ", dotK, "\n")
                     end #if
 
-                    #adjust qMatrix
-                    t.qMatrix[:, k] += abs(dotValK/uStar).*t.qMatrix[:, kStar]
+                    #adjusts qMatrix
+                    t.qMatrix[:, k] += abs(dotK/uStar).*t.qMatrix[:, kStar]
 
                     # complete remedial sweep through tape for adjusted qMatrix
                     #   upto indicated node index
-                    fwd_val_evaluation_sweep!(tape, t.x; sweepMode = REMEDIAL_SWEEP, nodeCount)
-
-                    # shows remedial sweep was triggered;
-                    #   avoids secondary trigger for the same k value
-                    trigger = true
-                    kStar, uStar = 0, 0.0
+                    forward_sweep!(tape, t.x; sweepMode = REMEDIAL_SWEEP, currentNodeI)
                 end #if
 
-                if dotValK != 0.0 && u(1).val == 0.0 && trigger == false
-                    kStar, uStar = k, dotValK
-                    # reset trigger for k = k + 1
-                    trigger = false
+                if !(-TOLERANCE <= dotK <= TOLERANCE) && (-TOLERANCE <= u(1).val <= TOLERANCE) && trigger == false
+
+                    kStar = k
+                    uStar = dotK
+                    # shows kStar and uStar have been set
+                        # avoids re-adjustment of uStar and kStar within this loop
+                    trigger = true
                 end #if
             end #for
-
-            # calculate .dotVal for node when trigger = false
-            v.dotVal = ((u(1).val >= 0.0) ? 1.0 : -1.0) * u(1).dotVal
 
         elseif nParents == 1
             # handle all other .val unary operations
@@ -232,71 +226,102 @@ function fwd_val_evaluation_step!(
         else
             throw(DomainError(op, "unsupported elemental operation"))
         end #if
-
-    elseif sweepMode == REMEDIAL_SWEEP && op == :abs
-        # calculating intermediate abs evaluations
-        v.dotVal = ((u(1).val >= 0.0) ? 1.0 : -1.0) * u(1).dotVal
     end #if
 
-    # dotVals are calculated in both evaluation procedures
+    # dots are calculated in both evaluation procedures
     if op == :input
-        v.dotVal = t.qMatrix[t.iX, :]
+        v.dot = t.qMatrix[t.iX, :]
         t.iX += 1
 
     elseif op == :output
-        v.dotVal = u(1).dotVal
-        t.yDot[t.iY, :] = v.dotVal
+        v.dot = u(1).dot
+        t.yDot[t.iY, :] = v.dot
         t.iY += 1
 
     elseif op == :const
-        v.dotVal = zeros(tape.domainDim)
-
-    elseif (op == :^) && (nParents == 1)
-        v.dotVal = node.constValue * (u(1).val)^(node.constValue-1) * u(1).dotVal
+        # handles constants
+        v.dot = zeros(tape.domainDim)
 
     elseif nParents == 1
-        # handle all other .dotVal unary operations
-        #   supported operations: [:-, :inv, :exp, :log, :sin, :cos]
-        if op == :- #negative
-            v.dotVal = -u(1).dotVal
-
-        elseif op == :inv #reciprocal
-            v.dotVal = -u(1).dotVal / ((u(1).val)^2)
-
-        elseif op == :exp #exponential
-            v.dotVal = exp(u(1).val) * u(1).dotVal
-
-        elseif op == :log #logarithmic
-            v.dotVal = u(1).dotVal / u(1).val
-
-        elseif op == :sin #sine
-            v.dotVal = cos(u(1).val) * u(1).dotVal
-
-        elseif op == :cos #cosine
-            v.dotVal = -sin(u(1).val) * u(1).dotVal
-        end #if
+        # handle all unary .dot operations
+        pd = partial_deriv(op, [u(1).val]; constValue = node.constValue)
+        v.dot = pd * u(1).dot
 
     elseif nParents == 2
-        # handle all .dotVal binary operations
-        #   supported operations: [:+, :-, :*, :/, :^]
-        if op in [:+, :-]
-            v.dotVal = eval(op)(u(1).dotVal, u(2).dotVal)
+        # handle all binary .dot operations
+        pd = partial_deriv(op, [u(1).val, u(2).val]; constValue = node.constValue)
+        v.dot = pd[1] * u(1).dot + pd[2] * u(2).dot
 
-        elseif op == :*
-            v.dotVal = (u(2).val * u(1).dotVal) + (u(1).val * u(2).dotVal)
+    else
+        throw(DomainError(op, "unsupported elemental operation"))
+    end #if
 
-        elseif op == :/
-            invVal = inv(u(2).val)
-            invDotVal = (-u(2).dotVal / ((u(2).val)^2))
-            v.dotVal = (invVal * u(1).dotVal) + (u(1).val * invDotVal)
+end #function
+
+function partial_deriv(
+    op::Symbol,
+    val::Vector{Float64};
+    constValue::Union{Int64, Float64}
+    )
+
+    # initialize
+    pd = 0.0
+
+    if (op == :^) && (length(val) == 1)
+        pd = constValue * (val[1])^(constValue-1)
+
+    elseif length(val) == 1
+        if op == :- #negative
+            pd = -1.0
+
+        elseif op == :inv #reciprocal
+            pd = -1.0 / (val[1]^2)
+
+        elseif op == :exp #exponential
+            pd = exp(val[1])
+
+        elseif op == :log #logarithmic
+            pd = 1.0 / val[1]
+
+        elseif op == :sin #sine
+            pd = cos(val[1])
+
+        elseif op == :cos #cosine
+            pd = -sin(val[1])
+
+        elseif op == :abs
+            pd = ((val[1] >= 0.0) ? 1.0 : -1.0)
 
         elseif op == :^
+            pd = constValue * (val[1])^(constValue-1)
+
+        else
+            throw(DomainError(op, "unsupported elemental operation"))
+        end #if
+
+    elseif length(val) == 2
+        if op == :+ #addition
+            pd = [1.0, 1.0]
+
+        elseif op == :- #subtraction
+            pd = [1.0, -1.0]
+
+        elseif op == :* #multiplication
+            pd = [val[2], val[1]]
+
+        elseif op == :/ #division
+            pd = [inv(val[2]), -val[1]/(val[2]^2)]
+
+        elseif op == :^ #exponential
             throw(DomainError(op, "unsupported elemental operation x^y; rewrite as exp(y*log(x))"))
         end #if
 
     else
         throw(DomainError(op, "unsupported elemental operation"))
     end #if
+
+    return pd
+
 end #function
 
 end #module

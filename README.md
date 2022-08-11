@@ -185,10 +185,10 @@ As explained in the paper, there exists some set of directional vectors, `qMatri
 
 The module `ConeSquashing` exports the following functions:
 
-- `tape = tape_setup(f::Function, domainDim::Int64, rangeDim::Int64)`
+- `tape = record_tape(f::Function, domainDim::Int64, rangeDim::Int64)`
     - returns an AD-amenable computational graph/tape (`CompGraph`) for the provided function `f`. The function must be expressed as a finite composition of abs value functions and continously differentiable functions and in the format required by `CompGraphs.load_function!`.
     - domain and range of a function refer to the number of inputs and outputs of function `f` respectively.
-    - note that the `record_tape` function from the `ReverseAD` module is not interchangeable with the `tape_setup` function.
+    - note that the `record_tape` function from the `ReverseAD` module is not interchangeable with this function.
 - `yJac, qMatrix = eval_gen_derivative!(tape::CompGraph{TapeData, NodeData}, x::Vector{Float64}; verbosity::Int64 = 0)`
     - performs a series of forward sweeps on the output `tape` of `tape_setup` to output `yJac`, an element of the generalized Jacobian matrix of `f` at the given vector `x`, and `qMatrix`.
     - key argument verbosity can be toggled between `0` and `1` to provide further information on the intermediate sweeps and calculations for `qMatrix`. The default value is `0`.
@@ -204,12 +204,12 @@ f(x) =  max(min(x[1], -x[2]), x[2] - x[1])
 Using the `ConeSquashing` module (after commands `include("ConeSquashing".jl”)` and `using .ConeSquashing`), we can produce an AD tape for the function `f`:
 - By defining f beforehand:
       ```Julia
-      tape = tape_setup(f, 2, 1)
+      tape = record_tape(f, 2, 1)
       ```
 
 - By defining f as an anonymous function:
       ```Julia
-      yOutput = tape_setup(2, 1) do x
+      yOutput = record_tape(2, 1) do x
           max(min(x[1], -x[2]), x[2] - x[1])
       end
       ```
