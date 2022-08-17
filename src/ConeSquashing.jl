@@ -131,7 +131,7 @@ function forward_sweep!(
     if sweepMode == MAIN_SWEEP
         # initialize
         t.x = x
-        
+
         # updates nodes, tape.data.y, and tape.data.yDot via forward sweep through tape
         for (i, nodeI) in enumerate(tape.nodeList)
             forward_step!(tape, nodeI, i; sweepMode = MAIN_SWEEP, kwargs...)
@@ -249,8 +249,9 @@ function forward_step!(
 
     elseif nParents == 2
         # handle all binary .dot operations
-        pd = partial_deriv(op, [u(1).val, u(2).val]; constValue = node.constValue)
-        v.dot = pd[1] * u(1).dot + pd[2] * u(2).dot
+        pd1 = partial_deriv(op, [u(1).val, u(2).val]; constValue = node.constValue, i = 1)
+        pd2 = partial_deriv(op, [u(1).val, u(2).val]; constValue = node.constValue, i = 2)
+        v.dot = pd1 * u(1).dot + pd2 * u(2).dot
 
     else
         throw(DomainError(op, "unsupported elemental operation"))
@@ -258,10 +259,12 @@ function forward_step!(
 
 end #function
 
+# calculate partial derivative of elemental function `op` at element `i` for given `val`:
 function partial_deriv(
     op::Symbol,
     val::Vector{Float64};
-    constValue::Union{Int64, Float64}
+    constValue::Union{Int64, Float64},
+    i::Int64 = 1
     )
 
     # initialize
@@ -301,16 +304,16 @@ function partial_deriv(
 
     elseif length(val) == 2
         if op == :+ #addition
-            pd = [1.0, 1.0]
+            pd = (i == 1) ? 1.0 : 1.0
 
         elseif op == :- #subtraction
-            pd = [1.0, -1.0]
+            pd = (i == 1) ? 1.0 : -1.0
 
         elseif op == :* #multiplication
-            pd = [val[2], val[1]]
+            pd = (i == 1) ? val[2] : val[1]
 
         elseif op == :/ #division
-            pd = [inv(val[2]), -val[1]/(val[2]^2)]
+            pd = (i == 1) ? inv(val[2]) : -val[1]/(val[2]^2)
 
         elseif op == :^ #exponential
             throw(DomainError(op, "unsupported elemental operation x^y; rewrite as exp(y*log(x))"))

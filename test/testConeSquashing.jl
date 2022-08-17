@@ -37,7 +37,7 @@ yJac2, _ = eval_gen_derivative!(tape2, x2)
 println("A computation graph of the function: f(x) = abs(x[1]) - abs(x[1]) :\n")
 display(tape2)
 
-println("The Jacobian matrix of the function is ", yJac2, ".\n")
+println("A generalized Jacobian element of the function is ", yJac2, ".\n")
 
 ##
 
@@ -52,7 +52,7 @@ yJac3, _ = eval_gen_derivative!(tape3, x3)
 println("A computation graph of the function: f(x) = 100.0 - abs(x[1] - x[2]^2) :\n")
 display(tape3)
 
-println("The Jacobian matrix of the function is ", yJac3, ".\n")
+println("A generalized Jacobian element of the function is ", yJac3, ".\n")
 
 ##
 
@@ -68,4 +68,4 @@ yJac4, _ =  eval_gen_derivative!(tape4, x4, verbosity = 1)
 println("A computation graph of the function: max(min(x[1], -x[2]), x[2] - x[1]) :\n")
 display(tape4)
 
-println("The Jacobian matrix of the function is ", yJac4, ".\n")
+println("A generalized Jacobian element of the function is ", yJac4, ".\n")
